@@ -6,18 +6,6 @@ $(function() {
         var sex = 'female';
         var type = 'binge';
 
-        // Filter data down
-        var data = allData.filter(function(d) {
-                return d.type == type && d.sex == sex
-            })
-            // Sort the data alphabetically
-            // Hint: http://stackoverflow.com/questions/6712034/sort-array-by-firstname-alphabetically-in-javascript
-            .sort(function(a, b) {
-                if (a.state_name < b.state_name) return -1;
-                if (a.state_name > b.state_name) return 1;
-                return 0;
-            });
-
         // Margin: how much space to put in the SVG for axes/titles
         var margin = {
             left: 70,
@@ -66,58 +54,7 @@ $(function() {
             .attr('transform', 'translate(' + (margin.left - 40) + ',' + (margin.top + drawHeight / 2) + ') rotate(-90)')
             .attr('class', 'title');
 
-        // Define xAxis using d3.axisBottom(). Scale will be set in the setAxes function.
-        var xAxis = d3.axisBottom();
-
-        // Define yAxis using d3.axisLeft(). Scale will be set in the setAxes function.
-        var yAxis = d3.axisLeft()
-            .tickFormat(d3.format('.2s'));
-
-        // Define an xScale with d3.scaleBand. Domain/rage will be set in the setScales function.
-        var xScale = d3.scaleBand();
-
-        // Define a yScale with d3.scaleLinear. Domain/rage will be set in the setScales function.
-        var yScale = d3.scaleLinear();
-
-
-        // Get the unique values of states for the domain of your x scale
-        var states = data.map(function(d) {
-            return d.state;
-        });
-
-        // Set the domain/range of your xScale
-        xScale.range([0, drawWidth])
-            .padding(0.1)
-            .domain(states);
-
-        // Get min/max values of the percent data (for your yScale domain)
-        var yMin = d3.min(data, function(d) {
-            return +d.percent;
-        });
-
-        var yMax = d3.max(data, function(d) {
-            return +d.percent;
-        });
-
-        // Set the domain/range of your yScale
-        yScale.range([drawHeight, 0])
-            .domain([0, yMax]);
-
-        // Set the scale of your xAxis object
-        xAxis.scale(xScale);
-
-        // Set the scale of your yAxis object
-        yAxis.scale(yScale);
-
-        // Render (call) your xAxis in your xAxisLabel
-        xAxisLabel.call(xAxis);
-
-        // Render (call) your yAxis in your yAxisLabel
-        yAxisLabel.call(yAxis);
-
-        // Update xAxisText and yAxisText labels
-        xAxisText.text('State');
-        yAxisText.text('Percent Drinking (' + sex + ', ' + type + ')');
+        
 
 
         // Add tip
@@ -126,24 +63,103 @@ $(function() {
         });
         g.call(tip);
 
-        // Store the data-join in a function: make sure to set the scales and update the axes in your function.
-        // Select all rects and bind data
-        var bars = g.selectAll('rect').data(data);
+       
 
-        // Use the .enter() method to get your entering elements, and assign initial positions
-        bars.enter().append('rect')
-            .attr('x', function(d) {
-                return xScale(d.state);
+        //function to filter down your data to the current selection based on the current sex and type
+        var filterData = function() {
+            // Filter data down
+            var data = allData.filter(function(d) {
+                return d.type == type && d.sex == sex
             })
-            .attr('class', 'bar')
-            .on('mouseover', tip.show)
-            .on('mouseout', tip.hide)
-            .attr('width', xScale.bandwidth())
-            .attr('y', function(d) {
-                return yScale(d.percent);
-            })
-            .attr('height', function(d) {
-                return drawHeight - yScale(d.percent);
+            // Sort the data alphabetically
+            // Hint: http://stackoverflow.com/questions/6712034/sort-array-by-firstname-alphabetically-in-javascript
+            .sort(function(a, b) {
+                if (a.state_name < b.state_name) return -1;
+                if (a.state_name > b.state_name) return 1;
+                return 0;
             });
+        }
+        
+        //function for setting the scales based on the current data selection
+        var setScales = function(data) {
+            // Get the unique values of states for the domain of your x scale
+            var states = data.map(function(d) {
+                return d.state;
+            });
+
+            // Define an xScale with d3.scaleBand. Domain/rage will be set in the setScales function.
+            // Set the domain/range of your xScale
+            xScale = d3.scaleBand()
+                .range([0, drawWidth])
+                .padding(0.1)
+                .domain(states);
+
+            // Get min/max values of the percent data (for your yScale domain)
+            var yMin = d3.min(data, function(d) {
+                return +d.percent;
+            });
+
+            var yMax = d3.max(data, function(d) {
+                return +d.percent;
+            });
+                      
+
+            // Define a yScale with d3.scaleLinear. Domain/rage will be set in the setScales function.
+            // Set the domain/range of your yScale
+            yScale = d3.scaleLinear()
+                .range([drawHeight, 0])
+                .domain([0, yMax]);
+
+        }
+
+        //function for updating your axis elements (both the axes, and their labels)
+        var setAxes = function() {
+            // Define xAxis using d3.axisBottom(). Scale will be set in the setAxes function.
+            var xAxis = d3.axisBottom()
+                .scale(xScale);
+
+            // Define yAxis using d3.axisLeft(). Scale will be set in the setAxes function.
+            var yAxis = d3.axisLeft()
+                .scale(yScale)
+                .tickFormat(d3.format('.2s'));
+
+            // Render (call) your xAxis in your xAxisLabel
+            xAxisLabel.call(xAxis);
+
+            // Render (call) your yAxis in your yAxisLabel
+            yAxisLabel.call(yAxis);
+
+            // Update xAxisText and yAxisText labels
+            xAxisText.text('State');
+            yAxisText.text('Percent Drinking (' + sex + ', ' + type + ')');
+        }
+
+        //function to perform your data-join. Within this function you should set your scales, update your axes, and re-render your rectangles
+        var draw = function(data) {
+            setScales(data);
+
+            setAxes();
+
+            // Store the data-join in a function: make sure to set the scales and update the axes in your function.
+            // Select all rects and bind data
+            var bars = g.selectAll('rect').data(data);
+
+            // Use the .enter() method to get your entering elements, and assign initial positions
+            bars.enter().append('rect')
+                .attr('x', function(d) {
+                    return xScale(d.state);
+                })
+                .attr('class', 'bar')
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide)
+                .attr('width', xScale.bandwidth())
+                .attr('y', function(d) {
+                    return yScale(d.percent);
+                })
+                .attr('height', function(d) {
+                    return drawHeight - yScale(d.percent);
+                });
+        }
+        //Assign an event handler to your input elements to set the sex and/or type, filter your data, then update your chart.
     });
 });
